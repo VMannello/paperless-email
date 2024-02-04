@@ -6,8 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/vmannello/paperless-email/internal/config"
-	"github.com/vmannello/paperless-email/internal/email"
+	"github.com/vmannello/paperless-email/pmail"
 )
 
 func main() {
@@ -16,7 +15,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	cfg, err := config.LoadConfig(os.Args[1])
+	cfg, err := pmail.LoadConfig(os.Args[1])
 	if err != nil {
 		log.Fatal("[ERROR]  could not load configuration:", err)
 	}
@@ -24,5 +23,5 @@ func main() {
 	documentPath := os.Getenv("DOCUMENT_SOURCE_PATH")
 	tags := strings.Split(os.Getenv("DOCUMENT_TAGS"), ",")
 
-	email.SendEmail(cfg, tags, documentPath)
+	pmail.SendEmail(cfg, tags, documentPath)
 }

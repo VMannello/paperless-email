@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on tags starting with 'v'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        go_os: [windows, darwin, linux]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+      - name: Run Tests
+        run: go test ./...
+
+      - name: Build
+        run: GOOS=${{ matrix.go_os }} go build -o pmail_${{ matrix.go_os }}
+
+      - name: Archive binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: pmail-binaries
+          path: pmail_${{ matrix.go_os }}
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pmail_${{ matrix.go_os }}
+          tags: ${{ github.ref }}
+          overwrite: true
+
+      - name: Set Outputs
+        run: echo "Release ID - ${{ steps.create_release.outputs.id }}"

@@ -1,0 +1,42 @@
+# define accounts by giving them a name
+# to be used in the tag mapping
+accounts:
+  - name: gmail
+    email: account1@gmail.com
+    smtp:
+      server: smtp.gmail.com
+      port: 587
+      username: your@gmail.com
+      # For gmail generate an "app password" and ensure 2FA:
+      # https://support.google.com/mail/answer/185833?hl=en
+      password: your_gmail_app_password
+      tls: true
+
+  - name: hotmail
+    email: account2@hotmail.com
+    smtp:
+      server: smtp.live.com
+      port: 587
+      username: account2@hotmail.com
+      password: account2_password
+      tls: true
+      insecure_skip_verify: true
+
+# map tags to emails
+mapping:
+  important:
+    account: gmail
+    recipients:
+      - "recipient1@example.com"
+      - "recipient2@example.com"
+
+message:
+  include_attachment: true
+
+  # use {{ var_name }} in subject and body for templating
+  # available variables found here:
+  # https://docs.paperless-ngx.com/advanced_usage/
+  subject: "pmail automated delivery - {{ DOCUMENT_ID }}"
+  body: |
+    Attached file:
+      - {{DOCUMENT_CREATED}} - {{ DOCUMENT_FILE_NAME }} - {{ DOCUMENT_ID }}

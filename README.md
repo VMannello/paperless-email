@@ -7,6 +7,10 @@ A [paperless-ngx](https://docs.paperless-ngx.com/post-consumption) post-consumpt
 - Configurable SMTP settings for each email account.
 - Support for secure connections with TLS and server certificate verification.
 
+### Releases
+Linux (Docker), Darwin , and Windows releases available:  
+https://github.com/VMannello/paperless-email/releases
+
 ### Setup
 
 **Configuration File**
@@ -85,7 +89,7 @@ webserver:
     - /home/paperless-ngx/scripts:/path/in/container/scripts/
   environment:
     # ...
-    PAPERLESS_POST_CONSUME_SCRIPT: "/path/in/container/scripts/pmail config.yaml"
+    PAPERLESS_POST_CONSUME_SCRIPT: "/path/in/container/scripts/pmail_linux config.yaml"
   # ... more settings ... #
 ```
 

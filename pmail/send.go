@@ -5,46 +5,59 @@ import (
 	"fmt"
 	"log"
 	"net/smtp"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
+// EmailAccount represents an email account configuration.
+type EmailAccount struct {
+	Name  string     `yaml:"name"`
+	Email string     `yaml:"email"`
+	SMTP  SMTPConfig `yaml:"smtp"`
+}
+
+// SMTPConfig represents SMTP configuration for an email account.
+type SMTPConfig struct {
+	Server             string `yaml:"server"`
+	Port               int    `yaml:"port"`
+	Username           string `yaml:"username"`
+	Password           string `yaml:"password"`
+	EnableTLS          bool   `yaml:"tls"`
+	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
+}
+
 func SendEmail(cfg Config, tags []string, filePath string) {
-	for _, tag := range tags {
-		mapCfg, ok := cfg.TagMapping.Config[tag]
+	for _, t := range tags {
+		msg, ok := cfg.TagMapping[t]
 		if !ok {
-			log.Printf("[WARN]  tag '%s' not found in configuration, skipping", tag)
+			log.Printf("[WARN]  tag '%s' not found in configuration, skipping \n", t)
 			continue
 		}
 
-		var selectedAccount EmailAccount
+		var sender EmailAccount
 		for _, acc := range cfg.Accounts {
-			if acc.Name == mapCfg.Account {
-				selectedAccount = acc
+			if acc.Name == msg.From {
+				sender = acc
 				break
 			}
 		}
 
-		if selectedAccount.Name == "" {
-			log.Printf("[WARN]  account [%s] not found in configuration, skipping", mapCfg.Account)
+		if sender.Name == "" {
+			log.Printf("[WARN]  account [%s] not found in configuration, skipping \n", msg.From)
 			continue
 		}
 
-		if !cfg.Message.IncludeAttachment {
-			filePath = ""
+		if msg.IncludeAttachment {
+			msg.attachments = make(map[string][]byte)
+			err := msg.AttachFile(filePath)
+			if err != nil {
+				log.Printf("[ERROR]  failed to include attachment: %s \n", err)
+				return
+			}
 		}
 
-		rawMsg, err := buildMessage(mapCfg.Recipients, cfg.Message.Subject, cfg.Message.Body, filePath)
-		if err != nil {
-			log.Printf("[ERROR]  error building message: %s", err)
-			break
-		}
-
-		if err := sendAttachmentEmail(selectedAccount, mapCfg.Recipients, rawMsg); err != nil {
-			log.Printf("[ERROR]  failed to send from [%s] to [%s] for tag [%s]: %s", selectedAccount.Name, mapCfg.Recipients, tag, err)
+		if err := sendAttachmentEmail(sender, msg.To, msg.ToBytes()); err != nil {
+			log.Printf("[ERROR]  failed to send from [%s] for tag [%s]: %s \n", sender.Name, t, err)
 		} else {
-			log.Printf("[INFO]  email sent from [%s] to [%s] for tag [%s]", selectedAccount.Name, mapCfg.Recipients, tag)
+			log.Printf("[INFO]  email sent from [%s] for tag [%s] \n", sender.Name, t)
 		}
 	}
 }
@@ -76,36 +89,11 @@ func sendAttachmentEmail(acctConfig EmailAccount, recipients []string, rawMsg []
 	if err := conn.Auth(auth); err != nil {
 		return fmt.Errorf("error authenticating:  %w", err)
 	}
-	
+
 	err = smtp.SendMail(smtpConfig.Server+":"+fmt.Sprint(smtpConfig.Port), auth, acctConfig.Email, recipients, rawMsg)
 	if err != nil {
 		return fmt.Errorf("error sending email: %w", err)
 	}
 
 	return nil
-}
-
-func buildMessage(recipients []string, subject, body, attachmentPath string) ([]byte, error) {
-	message := fmt.Sprintf("To: %s\r\n"+
-		"Subject: %s\r\n"+
-		"\r\n"+
-		"%s",
-		strings.Join(recipients, ","), subject, body)
-
-	if attachmentPath != "" {
-		attachmentName := filepath.Base(attachmentPath)
-		message += "\r\n--BOUNDARY\r\n" +
-			"Content-Type: application/octet-stream\r\n" +
-			"Content-Disposition: attachment; filename=\"" + attachmentName + "\"\r\n\r\n"
-
-		fileContent, err := os.ReadFile(attachmentPath)
-		if err != nil {
-			return nil, fmt.Errorf("error reading file: %w", err)
-		}
-
-		message += string(fileContent)
-		message += "\r\n--BOUNDARY--"
-	}
-
-	return []byte(message), nil
 }

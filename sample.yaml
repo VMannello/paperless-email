@@ -19,24 +19,41 @@ accounts:
       port: 587
       username: account2@hotmail.com
       password: account2_password
-      tls: true
-      insecure_skip_verify: true
 
-# map tags to emails
-mapping:
-  important:
-    account: gmail
-    recipients:
-      - "recipient1@example.com"
-      - "recipient2@example.com"
+# map tags to messages
+tags:
+  # tags are case-sensitive and must be unique
+  # fields default to empty or false
 
-message:
-  include_attachment: true
+  # all options example
+  my-tag:
+    # account from above
+    from: gmail
+    # list of recipients
+    to:
+      - "recipient-one@email.com"
+      - "recipient-two@email.com"
+    cc:
+      - "carbon-copy@email.com"
+    bcc:
+      - "blind@email.com"
 
-  # use {{ var_name }} in subject and body for templating
-  # available variables found here:
-  # https://docs.paperless-ngx.com/advanced_usage/
-  subject: "pmail automated delivery - {{ DOCUMENT_ID }}"
-  body: |
-    Attached file:
-      - {{DOCUMENT_CREATED}} - {{ DOCUMENT_FILE_NAME }} - {{ DOCUMENT_ID }}
+    include_attachment: true
+    # use {{ var_name }} in subject and body for templating
+    # available variables found here:
+    # https://docs.paperless-ngx.com/advanced_usage/
+    subject: "pmail automated delivery - {{ DOCUMENT_ID }}"
+    body: |
+      Attached file details:
+        - {{ DOCUMENT_FILE_NAME }}
+        - {{ DOCUMENT_ID }}
+        - {{ DOCUMENT_CREATED }} 
+        - {{ DOCUMENT_DOWNLOAD_URL }}
+
+  # each tag can have a unique message
+  simple-no-attachment:
+    from: hotmail
+    to:
+      - "recipient@email.com"
+    subject: "paperless processed a fil {{ DOCUMENT_FILE_NAME }} | {{ DOCUMENT_CREATED }}"
+    body: "Processed {{ DOCUMENT_FILE_NAME }} | Download at: {{ DOCUMENT_DOWNLOAD_URL }}"

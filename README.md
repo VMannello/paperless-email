@@ -8,7 +8,7 @@ A [paperless-ngx](https://docs.paperless-ngx.com/post-consumption) post-consumpt
 - Support for secure connections with TLS and server certificate verification.
 
 ### Releases
-Linux (Docker), Darwin , and Windows releases available:  
+Linux (Docker), Darwin, and Windows releases available:  
 https://github.com/VMannello/paperless-email/releases
 
 ### Setup
@@ -81,6 +81,8 @@ tags:
 ```
 
 ### Set up Paperless Post-Consume In Docker
+Using the linux build provided add `pmail` to your container
+
 ```yaml
 webserver:
   # ...

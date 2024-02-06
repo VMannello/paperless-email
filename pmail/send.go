@@ -4,7 +4,9 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net"
 	"net/smtp"
+	"time"
 )
 
 // EmailAccount represents an email account configuration.
@@ -74,26 +76,53 @@ func sendAttachmentEmail(acctConfig EmailAccount, recipients []string, rawMsg []
 		}
 	}
 
-	conn, err := smtp.Dial(smtpConfig.Server + ":" + fmt.Sprint(smtpConfig.Port))
+	dialer := &net.Dialer{
+		Timeout: 5 * time.Second,
+	}
+	conn, err := dialer.Dial("tcp", fmt.Sprintf("%s:%d", smtpConfig.Server, smtpConfig.Port))
 	if err != nil {
-		return fmt.Errorf("error connecting to SMTP server: %w", err)
+		return err
 	}
 	defer conn.Close()
 
+	client, err := smtp.NewClient(conn, smtpConfig.Server)
+	if err != nil {
+		return fmt.Errorf("failed to build client:  %w", err)
+	}
+	defer client.Close()
+
 	if tlsConfig != nil {
-		if err := conn.StartTLS(tlsConfig); err != nil {
-			return fmt.Errorf("error starting tls: %w", err)
+		if err = client.StartTLS(tlsConfig); err != nil {
+			return fmt.Errorf("failed to start tls: %w", err)
 		}
 	}
 
-	if err := conn.Auth(auth); err != nil {
-		return fmt.Errorf("error authenticating:  %w", err)
+	if err = client.Auth(auth); err != nil {
+		return fmt.Errorf("failed to authenticate:  %w", err)
 	}
 
-	err = smtp.SendMail(smtpConfig.Server+":"+fmt.Sprint(smtpConfig.Port), auth, acctConfig.Email, recipients, rawMsg)
+	if err = client.Mail(acctConfig.Email); err != nil {
+		return fmt.Errorf("failed to add sender:  %w", err)
+	}
+
+	for _, r := range recipients {
+		if err = client.Rcpt(r); err != nil {
+			return fmt.Errorf("failed to add recipient:  %w", err)
+		}
+	}
+
+	w, err := client.Data()
 	if err != nil {
-		return fmt.Errorf("error sending email: %w", err)
+		return err
+	}
+	_, err = w.Write(rawMsg)
+	if err != nil {
+		return err
+	}
+	err = w.Close()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	return client.Quit()
 }

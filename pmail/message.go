@@ -37,6 +37,7 @@ func (m *Message) AttachFile(src string) error {
 
 func (m *Message) ToBytes() []byte {
 	m.Body = replaceEnvironmentVariables(m.Body)
+	m.Subject = replaceEnvironmentVariables(m.Subject)
 
 	buf := bytes.NewBuffer(nil)
 	withAttachments := len(m.attachments) > 0

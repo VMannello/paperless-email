@@ -19,6 +19,7 @@ accounts:
       port: 587
       username: account2@hotmail.com
       password: account2_password
+      tls: true
 
 # map tags to messages
 tags:

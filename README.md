@@ -26,8 +26,7 @@ accounts:
       # For gmail generate an "app password" and ensure 2FA:
       # https://support.google.com/mail/answer/185833?hl=en
       password: your_gmail_app_password
-      secureConnection: true
-      verifyServerCertificate: true
+      tls: true
 
   - name: hotmail
     email: account2@hotmail.com
@@ -36,34 +35,59 @@ accounts:
       port: 587
       username: account2@hotmail.com
       password: account2_password
+      tls: true
 
-# map tags to emails
-tag_mapping:
-  # any docs with "tag-one" attached will go to "gmail"
-  tag-one:
-    - gmail
-  # any docs with "tag-two" attached will go to "hotmail"
-  tag-two:
-    - hotmail
-  # any docs with "tag-three" attached will go
-  # to both "gmail" & "hotmail"
-  tag-three:
-    - gmail
-    - hotmail
+# map tags to messages
+tags:
+  # tags are case-sensitive and must be unique
+  # fields default to empty or false
 
-message:
-  # use {{ var_name }} in subject and body for templating
-  # available variables found here:
-  # https://docs.paperless-ngx.com/advanced_usage/
-  subject: "Paperless Emails - {{ DOCUMENT_ID }}"
-  body: |
-    Attached files:
-      - {{DOCUMENT_CREATED}} - {{ DOCUMENT_FILE_NAME }} - {{ DOCUMENT_ID }}
-  include_attachment: true
+  # all options example
+  my-tag:
+    # account from above
+    from: gmail
+    # list of recipients
+    to:
+      - "recipient-one@email.com"
+      - "recipient-two@email.com"
+    cc:
+      - "carbon-copy@email.com"
+    bcc:
+      - "blind@email.com"
+
+    include_attachment: true
+    # use {{ var_name }} in subject and body for templating
+    # available variables found here:
+    # https://docs.paperless-ngx.com/advanced_usage/
+    subject: "pmail automated delivery - {{ DOCUMENT_ID }}"
+    body: |
+      Attached file details:
+        - {{ DOCUMENT_FILE_NAME }}
+        - {{ DOCUMENT_ID }}
+        - {{ DOCUMENT_CREATED }} 
+        - {{ DOCUMENT_DOWNLOAD_URL }}
+
+  # each tag can have a unique message
+  simple-no-attachment:
+    from: hotmail
+    to:
+      - "recipient@email.com"
+    subject: "paperless processed a fil {{ DOCUMENT_FILE_NAME }} | {{ DOCUMENT_CREATED }}"
+    body: "Processed {{ DOCUMENT_FILE_NAME }} | Download at: {{ DOCUMENT_DOWNLOAD_URL }}"
 ```
 
-### Run the Script
-`pmail config.yaml`
+### Set up Paperless Post-Consume In Docker
+```yaml
+webserver:
+  # ...
+  volumes:
+    # ensure both pmail and the config yaml are the docker volume
+    - /home/paperless-ngx/scripts:/path/in/container/scripts/
+  environment:
+    # ...
+    PAPERLESS_POST_CONSUME_SCRIPT: "/path/in/container/scripts/pmail config.yaml"
+  # ... more settings ... #
+```
 
 ### Paperless Environment Variables
 
@@ -73,7 +97,7 @@ https://docs.paperless-ngx.com/advanced_usage/
 Required by the script:
 ```shell
 DOCUMENT_TAGS: <Comma separated list of tags applied (if any)>
-DOCUMENT_SOURCE_PATH: <Path to the file to attach to the email>
+DOCUMENT_SOURCE_PATH: < Optional, path to the file to attach to the email>
 ```
 
 All other variables can be used in subject and body of email.
